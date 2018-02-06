@@ -1,14 +1,8 @@
 #include <dirent.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "utils.h"
 
-void die(const char *errstr, ...);
 void doservice(char *, int);
 void runservice(char *, int);
-void spawn(char *const []);
 void usage(char *);
 
 void main(int argc, char *argv[])
@@ -23,29 +17,28 @@ void main(int argc, char *argv[])
 		}
 		else {
 			FILE *fd;
-			char *svcpath=(char*)malloc(sizeof(argv[2])+sizeof("/etc/svc/avail/"));
-			strcpy(svcpath,"/etc/svc/avail/");
-			strcat(svcpath,argv[2]);
-			if ( (fd=fopen(svcpath,"r"))){
-				fclose(fd);
-				char **cmd=(char**)malloc(5*sizeof(char*));
-				cmd[0]=(char*)malloc(sizeof("ln"));
-				strcpy(cmd[0],"ln");
-				cmd[1]=(char*)malloc(sizeof("-sf"));
-				strcpy(cmd[1],"-sf");
-				cmd[2]=(char*)malloc(sizeof(svcpath));
-				strcpy(cmd[2],svcpath);
-				cmd[3]=(char*)malloc(sizeof(argv[2])+sizeof("/etc/svc/run/"));
-				strcpy(cmd[3],"/etc/svc/run/");
-				strcat(cmd[3],argv[2]);
-				cmd[4]=NULL;
-				spawn(cmd);
-				for(int i=3;i>=0;i-=1)
-					free(cmd[i]);
-				printf("%s activated\n",argv[2]);
-				free(cmd);
+			for(int c=2;c<argc;c+=1)
+			{
+				char *svcpath=smprintf("/etc/svc/avail/%s",argv[c]);
+				printf("%s\n",svcpath);
+				fd=fopen(svcpath,"r");
+				printf("%p\n",fd);
+				if ( fd ){
+					fclose(fd);
+					char **cmd=(char**)malloc(5*sizeof(char*));
+					cmd[0]=smprintf("ln");
+					cmd[1]=smprintf("-sf");
+					cmd[2]=smprintf("%s",svcpath);
+					cmd[3]=smprintf("/etc/svc/run/%s",argv[c]);
+					cmd[4]=NULL;
+					spawn(cmd);
+					for(int i=3;i>=0;i-=1)
+						free(cmd[i]);
+					printf("%s activated\n",argv[c]);
+					free(cmd);
+				}
+				free(svcpath);
 			}
-			free(svcpath);
 			exit(0);
 		}
 	}
@@ -57,19 +50,14 @@ void main(int argc, char *argv[])
 	else if(!strcmp(argv[1],"-d")){
 		if(argc<3)
 			die("No service given\n");
-		char *svcpath=(char*)malloc(sizeof(argv[2])+sizeof("/etc/svc/run/"));
-		strcpy(svcpath,"/etc/svc/run/");
-		strcat(svcpath,argv[2]);
+		char *svcpath=smprintf("/etc/svc/run/%s",argv[2]);
 		FILE *fd=fopen(svcpath,"r");
 		if(fd){
 			fclose(fd);
 			char **cmd=(char**)malloc(4*sizeof(char*));
-			cmd[0]=(char*)malloc(sizeof("rm"));
-			strcpy(cmd[0],"rm");
-			cmd[1]=(char*)malloc(sizeof("-f"));
-			strcpy(cmd[1],"-f");
-			cmd[2]=(char*)malloc(sizeof(svcpath));
-			strcpy(cmd[2],svcpath);
+			cmd[0]=smprintf("rm");
+			cmd[1]=smprintf("-f");
+			cmd[2]=smprintf("%s",svcpath);
 			cmd[3]=NULL;
 			spawn(cmd);
 			for(int i=2;i>=0;i-=1)
@@ -98,9 +86,7 @@ void main(int argc, char *argv[])
 	else if(!strcmp(argv[1],"-r")){
 		if(argc<3)
 			die("no service given\n");
-		char *cmd=(char*)malloc(sizeof("svc -k ")+sizeof(argv[2]));
-		strcpy(cmd,"svc -k ");
-		strcat(cmd,argv[2]);
+		char *cmd=smprintf("svc -k %s", argv[2]);
 		system(cmd);
 		cmd[5]='s';
 		system(cmd);
@@ -108,22 +94,6 @@ void main(int argc, char *argv[])
 		die("\n");
 	}
 	else usage(argv[0]);
-}
-
-void
-die(const char *fmt, ...) {
-	va_list ap;
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-
-	if (fmt[0] && fmt[strlen(fmt)-1] == ':') {
-		fputc(' ', stderr);
-		perror(NULL);
-	}
-
-	exit(1);
 }
 
 void
@@ -141,8 +111,7 @@ doservice(char *name, int mode)//add order of loadings
 		while((obj=readdir(run))){
 			number+=1;
 			list=(char**)realloc(list,number*sizeof(char*));
-			list[number-1]=(char*)malloc(sizeof(obj->d_name));
-			strcpy(list[number-1],obj->d_name);
+			list[number-1]=smprintf("%s",obj->d_name);
 		}
 		closedir(run);
 		for(int i=0;i<number;i+=1)
@@ -159,32 +128,34 @@ runservice(char *name, int mode)
 {
 	char **cmd=(char **)malloc(3*sizeof(char*));
 	cmd[2]=NULL;
-	cmd[1]=(char*)malloc(sizeof("-s"));
 	char *action;
 	if(mode==1)
 		{
-			strcpy(cmd[1],"-s");
+			cmd[1]=smprintf("start");
 			action="started";
 		}
 	else if(!mode)
 		{
-			strcpy(cmd[1],"-k");
+			cmd[1]=smprintf("stop");
 			action="killed";
 		}
 	else if(mode==2)
 		{
-			strcpy(cmd[1],"-r");
+			cmd[1]=smprintf("restart");
 			action="restarted";
 		}
 	FILE *serv;
 	char *path[]={"/etc/svc/run/","/etc/svc/avail/","./","/bin/","/usr/bin/","/usr/local/bin","/sbin/","/usr/sbin/","/usr/local/sbin/"};
 	for(int i=0;i<9;i+=1){
-		cmd[0]=(char*)malloc(sizeof(path[i])+sizeof(name));
+		cmd[0]=smprintf("%s%s",path[i],name);
 		strcpy(cmd[0],path[i]);
 		strcat(cmd[0],name);
 		serv=fopen(cmd[0],"r");
 		if(serv){
 			fclose(serv);
+			system(smprintf("ln -sf %s /run/svc/",cmd[0]));
+			free(cmd[0]);
+			cmd[0]=smprintf("/run/svc/%s",name);
 			spawn(cmd);
 			for(int i=2;i>=0;i-=1)
 				free(cmd[i]);
@@ -194,17 +165,8 @@ runservice(char *name, int mode)
 		}
 		free(cmd[0]);
 	}
+	free(action);
 	printf("cannot find service: %s\n",name);
-}
-
-void
-spawn(char *const argv[])
-{
-	if (fork() == 0) {
-		setsid();
-		execvp(argv[0], argv);
-		perror(" failed\n");
-	}
 }
 
 void
@@ -222,4 +184,5 @@ usage(char *name)
 	printf("-r [ser] - restart service »ser«\n");
 	printf("-s - run all services\n");
 	printf("-s [ser] - run service »ser«\n");
+	die("");
 }
