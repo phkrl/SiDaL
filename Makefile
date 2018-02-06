@@ -9,11 +9,11 @@ options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "CC       = ${CC}"
 
-.c.o:
-	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
+${OBJ}: config.mk
+	@echo CC $@
+	@${CC} -c ${CFLAGS} ${SRC}
 
-svc:
+svc: ${OBJ}
 	${CC} -o $@ ${OBJ}
 
 clean:
