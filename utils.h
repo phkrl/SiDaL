@@ -7,4 +7,4 @@
 
 void die(const char *errstr, ...);
 char *smprintf(char *fmt, ...);
-void spawn(char *const []);
+pid_t spawn(char *const []);

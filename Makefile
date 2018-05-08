@@ -1,39 +1,35 @@
 include config.mk
 
-SRC = svc.c utils.c
+SRC = sidal.c service.c utils.c
 OBJ = ${SRC:.c=.o}
 
-all: options svc
+all: options sidal service
 
 options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "CC       = ${CC}"
 
-${OBJ}: config.mk
-	@echo CC $@
-	@${CC} -c ${CFLAGS} ${SRC}
+.c.o:
+	@echo CC $<
+	@${CC} -c ${CFLAGS} $<
 
-svc: ${OBJ}
-	${CC} -o $@ ${OBJ}
+${OBJ}: config.mk
+
+sidal: ${OBJ}
+	${CC} -o $@ sidal.o utils.o
+
+service: ${OBJ}
+	${CC} -o $@ service.o utils.o
 
 clean:
-	rm -f svc svc-$(VERSION).tar.gz
-
-dist: clean
-	@echo creating dist tarball
-	@mkdir -p svc-${VERSION}
-	@cp -R LICENSE Makefile README.md config.mk \
-		util.h ${SRC} svc-${VERSION}
-	@tar -cf svc-${VERSION}.tar svc-${VERSION}
-	@gzip svc-${VERSION}.tar
-	@rm -rf svc-${VERSION}
+	rm -f sidal
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp -f svc $(DESTDIR)$(PREFIX)/bin
+	cp -f sidal $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/svc
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/svc
 
-.PHONY: all options clean dist install uninstall
+.PHONY: all options clean install uninstall

@@ -40,12 +40,14 @@ smprintf(char *fmt, ...)
 	return ret;
 }
 
-void
+pid_t
 spawn(char *const argv[])
 {
-	if (fork() == 0) {
+	pid_t child;
+	if ((child=fork()) == 0) {
 		setsid();
 		execvp(argv[0], argv);
 		perror(" failed\n");
 	}
+	return child;
 }
