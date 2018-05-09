@@ -27,9 +27,9 @@ clean:
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp -f sidal $(DESTDIR)$(PREFIX)/bin
-	chmod 755 $(DESTDIR)$(PREFIX)/bin/svc
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/sidal
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/svc
+	rm -f $(DESTDIR)$(PREFIX)/bin/sidal
 
 .PHONY: all options clean install uninstall
