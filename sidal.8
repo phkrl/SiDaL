@@ -1,0 +1,48 @@
+.TH SIDAL 8 sidal\-VERSION
+.SH NAME
+sidal \- simple daemon launcher
+.SH SYNOPSIS
+.B sidal
+.RB [aceklmrsuw]
+.RI [ cmd ]
+.RI [ services ]
+.SH DESCRIPTION
+.B sidal
+proceeds a list of services with given options. A list of options should be first argument. Services may be given as relative paths within one of working directories.
+.SH OPTIONS
+.TP
+.B a
+link services to /etc/sidal/run. Services are only searched in /etc/sidal/avail.
+.TP
+.B c
+create all sidal directories (/etc/sidal, /etc/sidal/avail, /etc/sidal/default, /etc/sidal/run, /run/sidal).
+.TP
+.BI e " cmd"
+use defined cmd instead of start/stop/restart while processing services. New cmd should be second argument
+.TP
+.B k
+kill services. Services are searched in /run/sidal and /etc/sidal/run only.
+.TP
+.B l
+list /etc/sidal/run.
+.TP
+.B m
+on successful start: link services to /run/sidal. On successfull kill: removes link from /run/sidal.
+.TP
+.B r
+restart services. Services are searched in /run/sidal and /etc/sidal/run only.
+.TP
+.B s
+start services. Services are searched in /etc/sidal/run, /etc/sidal/avail, all *bin directories, as absolute path and in .
+.TP
+.B u
+remove links from /etc/sidal/run.
+.TP
+.B w
+wait any service to finish its work and check its exit status before starting new one. If w is not set any job is assumed to be successful.
+.SH AUTHORS
+See the LICENSE file for the authors.
+.SH LICENSE
+See the LICENSE file for the terms of redistribution.
+.SH SEE ALSO
+.BR sinit (8)

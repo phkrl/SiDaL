@@ -1,12 +1,11 @@
 #include "utils.h"
 
-#define DELAY 1<<0
-#define START 1<<1
-#define STOP 1<<2
-#define AVAIL 1<<3
-#define UNAVAIL 1<<4
-#define WAIT 1<<5
-#define MARK 1<<6
+#define START 1<<0
+#define STOP 1<<1
+#define AVAIL 1<<2
+#define UNAVAIL 1<<3
+#define WAIT 1<<4
+#define MARK 1<<5
 
 static int doservice(const char *path);
 static char* findpath(char *name);
@@ -14,7 +13,7 @@ static int runservice(const char *target);
 static void usage(char *name);
 
 static short int mode=0;
-static int delay=1;
+static char *ecmd=NULL; /* overwritten cmd */
 
 int
 doservice(const char *path)
@@ -24,7 +23,9 @@ doservice(const char *path)
 	char **cmd=(char **)malloc(3*sizeof(char*));
 	cmd[0]=path;
 	cmd[2]=NULL;
-	if ((mode & START) && (mode & STOP)) {
+	if (ecmd) {
+		cmd[1]=ecmd;
+	} else if ((mode & START) && (mode & STOP)) {
 		cmd[1]="restart";
 	} else if (mode & START) {
 		cmd[1]="start";
@@ -36,9 +37,15 @@ doservice(const char *path)
 	service=spawn(cmd);
 	free(cmd);
 	if (mode & WAIT) {
-		int wstatus;
+		/* wstatus should be initialized to trace errors */
+		int wstatus=-1;
 		waitpid(service,&wstatus,0);
 		ret=WIFEXITED(wstatus);
+		if (ret) {
+			if (WEXITSTATUS(wstatus) != 0) {
+				ret=0;
+			}
+		}
 	}
 	return ret;
 }
@@ -54,21 +61,23 @@ findpath(char *name)
 		paths[1]="/etc/sidal/run/";
 		paths[2]=NULL;
 	} else if (mode & STOP) {
-		paths=(char**)malloc(2*sizeof(char*));
+		paths=(char**)malloc(3*sizeof(char*));
 		paths[0]="/run/sidal/";
-		paths[1]=NULL;
+		paths[1]="/etc/sidal/run/";
+		paths[2]=NULL;
 	} else if (mode & START) {
-		paths=(char**)malloc(10*sizeof(char*));
+		paths=(char**)malloc(11*sizeof(char*));
 		paths[0]="/etc/sidal/run/";
-		paths[1]="/bin/";
-		paths[2]="/sbin/";
-		paths[3]="/usr/bin/";
-		paths[4]="/usr/sbin/";
-		paths[5]="/usr/local/bin/";
-		paths[6]="/usr/local/sbin/";
-		paths[7]="";
-		paths[8]="./";
-		paths[9]=NULL;
+		paths[1]="/etc/sidal/avail/";
+		paths[2]="/bin/";
+		paths[3]="/sbin/";
+		paths[4]="/usr/bin/";
+		paths[5]="/usr/sbin/";
+		paths[6]="/usr/local/bin/";
+		paths[7]="/usr/local/sbin/";
+		paths[8]="";
+		paths[9]="./";
+		paths[10]=NULL;
 	}
 	else if (mode & AVAIL) {
 		paths=(char**)malloc(2*sizeof(char*));
@@ -110,15 +119,12 @@ runservice(const char *target)
 			}
 		}
 		if (mode&MARK && res) {
-			if (mode & STOP) {
+			if ((mode & STOP) && strstr(path,"/run/sidal/")) {
 				system(smprintf("rm %s",path));
 			}
 			if (mode & START) {
 				system(smprintf("ln -sf %s /run/sidal",path));
 			}
-		}
-		if (mode & DELAY) {
-			sleep(delay);
 		}
 	} else if (mode & AVAIL) {
 		system(smprintf("ln -sf %s /etc/sidal/run",path));
@@ -132,7 +138,7 @@ runservice(const char *target)
 void
 usage(char *name)
 {
-	printf("%s [-acdklmrsuv] [delay] services\n",name);
+	printf("usage: %s [aceklmrsuw] [cmd] services\n",name);
 	exit(0);
 }
 
@@ -142,6 +148,7 @@ main(int argc, char *argv[])
 	if (argc<2)
 		usage(argv[0]);
 	if (strchr(argv[1],'c')) {
+		system("mkdir /etc/sidal");
 		system("mkdir /etc/sidal/avail");
 		system("mkdir /etc/sidal/default");
 		system("mkdir /etc/sidal/run");
@@ -169,11 +176,10 @@ main(int argc, char *argv[])
 	if (strchr(argv[1],'m')) {
 		mode=mode|MARK;
 	}
-	if (strchr(argv[1],'d')){
-			mode=mode|DELAY;
-			sscanf(argv[2],"%d",&delay);		
+	if (strchr(argv[1],'e')){
+			ecmd=argv[2];	
 		}
-	if (!(argc-2-(mode&DELAY))) {
+	if (!(argc-2-(ecmd ? 1 : 0))) {
 		if (mode&AVAIL) {
 			system("ls /etc/sidal/avail");
 		} else if (mode & START) {
@@ -182,7 +188,7 @@ main(int argc, char *argv[])
 			usage(argv[0]);
 		}
 	}
-	for (int i=0;i<argc-2-(mode&DELAY);i+=1)
-		runservice(smprintf("%s",argv[2+(mode&DELAY)+i]));	
+	for (int i=0;i<argc-2- (ecmd ? 1 : 0);i+=1)
+		runservice(argv[2+(ecmd ? 1 : 0)+i]);
 	return 0;
 }

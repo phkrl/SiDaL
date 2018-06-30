@@ -1,28 +1,21 @@
-# svc
-svc from git.r-36.net/svc rewritten in C
-
-To be extended
+# sidal
+sidal is service launcher based on svc from git.r-36.net/svc rewritten in C
 
 Usage:
 
-svc [-adklrsh] [service]
+sidal [aceklmrsuw] [cmd] services
 
--a - list all links in /etc/svc/run (all activated services)
+the first argument is command string. it consists of following commands:
 
--a [ser] - activate service »ser« to be run on startup (create link in /etc/svc/run)
+a - link all given services to /etc/sidal/run (or list /etc/sidal/avail if no services given). Services are searched in /etc/sidal/avail only.
+c - prepare directories (/etc/sidal/avail, /etc/sidal/run, /etc/sidal/default, /run/sidal)
+e - set custom arguments to all services in the list. The new command line should be second argument then
+k - kill services. Services are searched in /run/sidal and /etc/sidal/run only
+l - list /etc/sidal/run
+m - link started services to /run/sidal or remove links of killed services
+r - restart services. Services are searched in /run/sidal and /etc/sidal/run only.
+s - start services. If no services given, list /run/sidal. Services are searched in /etc/sidal/run, /etc/sidal/avail all *bin directories, as absolute path and in .
+u - remove links from /etc/sidal/run
+w - wait until job finishes before processing next service
 
--c - prepare svc directories (/etc/svc/avail, /etc/svc/run, /run/svc)
-
--d [ser] - deactivate service »ser«
-
--k - kill all services
-
--k [ser] - kill the service »ser«
-
--l - list all services in /etc/svc/avail
-
--r [ser] - restart service »ser«
-
--s - run all services
-
--s [ser] - run service »ser«
+You may use relative paths as services
