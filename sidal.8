@@ -3,7 +3,7 @@
 sidal \- simple daemon launcher
 .SH SYNOPSIS
 .B sidal
-.RB [aceklmrsuw]
+.RB [acefklmrsuw]
 .RI [ cmd ]
 .RI [ services ]
 .SH DESCRIPTION
@@ -19,6 +19,9 @@ create all sidal directories (/etc/sidal, /etc/sidal/avail, /etc/sidal/default, 
 .TP
 .BI e " cmd"
 use defined cmd instead of start/stop/restart while processing services. New cmd should be second argument
+.TP
+.B f
+do not start services if there are links in /run/sidal and do not kill them if there are no links in /run/sidal
 .TP
 .B k
 kill services. Services are searched in /run/sidal and /etc/sidal/run only.

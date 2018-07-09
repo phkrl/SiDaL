@@ -7,6 +7,7 @@
 #define WAIT 1<<4
 #define MARK 1<<5
 
+static char* basename(char *name);
 static int doservice(const char *path);
 static char* findpath(char *name);
 static int runservice(const char *target);
@@ -14,6 +15,20 @@ static void usage(char *name);
 
 static short int mode=0;
 static char *ecmd=NULL; /* overwritten cmd */
+
+char*
+basename(char *name)
+{
+	int i, l1, l2;
+	char *out;
+	l2=strlen(name)+1;
+	for (l1=l2-1;l1>0 && name[l1-1]!='/';l1-=1);
+	l2=l2-l1;
+	out=(char*)malloc(l2*sizeof(char));
+	for (i=0;i<l2;i+=1)
+		out[i]=name[i+l1];
+	return out;
+}
 
 int
 doservice(const char *path)
@@ -138,7 +153,7 @@ runservice(const char *target)
 void
 usage(char *name)
 {
-	printf("usage: %s [aceklmrsuw] [cmd] services\n",name);
+	printf("usage: %s [acefklmrsuw] [cmd] services\n",name);
 	exit(0);
 }
 
@@ -188,7 +203,19 @@ main(int argc, char *argv[])
 			usage(argv[0]);
 		}
 	}
-	for (int i=0;i<argc-2- (ecmd ? 1 : 0);i+=1)
-		runservice(argv[2+(ecmd ? 1 : 0)+i]);
+	if (!strchr(argv[1],'f')) {
+		for (int i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
+			runservice(argv[2+(ecmd ? 1 : 0)+i]);
+		}
+	}
+	else {
+		FILE *ex;
+		for (int i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
+			if ((ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && mode&START && !(mode&STOP)) {
+				fclose(ex);
+			} else if (!(ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && !(mode&START) && mode&STOP);
+			else runservice(argv[2+(ecmd ? 1 : 0)+i]);
+		}
+	}
 	return 0;
 }
