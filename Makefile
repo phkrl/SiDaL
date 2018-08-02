@@ -28,7 +28,6 @@ install: all
 	mkdir -p $(DESTDIR)$(MANPREFIX)/man8
 	sed "s/VERSION/$(VERSION)/g" < sidal.8 > $(DESTDIR)$(MANPREFIX)/man8/sidal.8
 	chmod 644 $(DESTDIR)$(MANPREFIX)/man8/sidal.8
-	rm -f $(DESTDIR)$(MANPREFIX)/man1/st.1
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/sidal
