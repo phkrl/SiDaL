@@ -3,7 +3,7 @@
 sidal \- simple daemon launcher
 .SH SYNOPSIS
 .B sidal
-.RB [acefklmrsuw]
+.RB [acefklmprsuw]
 .RI [ cmd ]
 .RI [ services ]
 .SH DESCRIPTION
@@ -31,6 +31,9 @@ list /etc/sidal/run.
 .TP
 .B m
 on successful start: link services to /run/sidal. On successfull kill: removes link from /run/sidal.
+.TP
+.B p
+run services in parallel
 .TP
 .B r
 restart services. Services are searched in /run/sidal and /etc/sidal/run only.

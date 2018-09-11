@@ -10,25 +10,12 @@
 static char* basename(char *name);
 static int doservice(const char *path);
 static char* findpath(char *name);
-static int runservice(const char *target);
+static int runservice(char *target);
+static void* thread(void *arg);
 static void usage(char *name);
 
 static short int mode=0;
 static char *ecmd=NULL; /* overwritten cmd */
-
-char*
-basename(char *name)
-{
-	int i, l1, l2;
-	char *out;
-	l2=strlen(name)+1;
-	for (l1=l2-1;l1>0 && name[l1-1]!='/';l1-=1);
-	l2=l2-l1;
-	out=(char*)malloc(l2*sizeof(char));
-	for (i=0;i<l2;i+=1)
-		out[i]=name[i+l1];
-	return out;
-}
 
 int
 doservice(const char *path)
@@ -116,7 +103,7 @@ findpath(char *name)
 }
 
 int
-runservice(const char *target)
+runservice(char *target)
 {
 	char *path=findpath(target);
 	if (!path) {
@@ -150,16 +137,24 @@ runservice(const char *target)
 	return 0;
 }
 
+void *thread(void *arg)
+{
+	runservice((char*)arg);
+	return NULL;
+}
+
 void
 usage(char *name)
 {
-	printf("usage: %s [acefklmrsuw] [cmd] services\n",name);
+	printf("usage: %s [acefklmprsuw] [cmd] services\n",name);
 	exit(0);
 }
 
 int
 main(int argc, char *argv[])
 {
+	int i;
+	
 	if (argc<2)
 		usage(argv[0]);
 	if (strchr(argv[1],'c')) {
@@ -203,19 +198,42 @@ main(int argc, char *argv[])
 			usage(argv[0]);
 		}
 	}
-	if (!strchr(argv[1],'f')) {
-		for (int i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
-			runservice(argv[2+(ecmd ? 1 : 0)+i]);
+	if (!strchr(argv[1],'p')) {
+		if (!strchr(argv[1],'f')) {
+			for (i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
+				runservice(argv[2+(ecmd ? 1 : 0)+i]);
+			}
 		}
-	}
-	else {
-		FILE *ex;
-		for (int i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
-			if ((ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && mode&START && !(mode&STOP)) {
-				fclose(ex);
-			} else if (!(ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && !(mode&START) && mode&STOP);
-			else runservice(argv[2+(ecmd ? 1 : 0)+i]);
+		else {
+			FILE *ex;
+			for (i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
+				if ((ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && mode&START && !(mode&STOP)) {
+					fclose(ex);
+				} else if (!(ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && !(mode&START) && mode&STOP);
+				else runservice(argv[2+(ecmd ? 1 : 0)+i]);
+			}
 		}
+	} else {
+		pthread_t *threads=(pthread_t*)malloc((argc-2-(ecmd ? 1 : 0))*sizeof(pthread_t));
+		if (!strchr(argv[1],'f')) {
+			for (i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
+				pthread_create(&threads[i],NULL,(&thread),(void*)argv[2+(ecmd ? 1 : 0)+i]);
+			}
+		}
+		else {
+			FILE *ex;
+			for (i=0;i<argc-2- (ecmd ? 1 : 0);i+=1) {
+				if ((ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && mode&START && !(mode&STOP)) {
+					fclose(ex);
+				} else if (!(ex=fopen(smprintf("/run/sidal/%s",basename(argv[2+(ecmd ? 1 : 0)+i])),"r")) && !(mode&START) && mode&STOP);
+				else {
+					pthread_create(&threads[i],NULL,(&thread),(void*)argv[2+(ecmd ? 1 : 0)+i]);
+				}
+			}
+		}
+		for (i=0;i<argc-2-(ecmd ? 1 : 0);i+=1)
+			pthread_join(threads[i],NULL);
+		free(threads);
 	}
 	return 0;
 }

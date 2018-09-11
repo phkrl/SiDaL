@@ -16,7 +16,7 @@ options:
 ${OBJ}: config.mk
 
 sidal: ${OBJ}
-	${CC} -o $@ sidal.o utils.o
+	${CC} -o $@ ${LFLAGS} sidal.o utils.o
 
 clean:
 	rm -f sidal 
